@@ -151,6 +151,26 @@ func HTTPErrorHandler(logger *zap.Logger) echo.HTTPErrorHandler {
 			return
 		}
 
+		// 处理 404 Not Found（Echo 直接返回的字符串错误）
+		if err.Error() == "Not Found" {
+			httpCode = http.StatusNotFound
+			message = "Not Found"
+			logger.Warn("HTTP error",
+				zap.Int("code", httpCode),
+				zap.String("message", message),
+				zap.String("path", c.Request().URL.Path),
+				zap.String("method", c.Request().Method),
+			)
+			resp := &response.Response{
+				Code:    httpCode,
+				Data:    nil,
+				Message: message,
+				Error:   "",
+			}
+			c.JSON(httpCode, resp)
+			return
+		}
+
 		// 处理其他系统错误 - 记录 ERROR + 堆栈
 		logger.Error("Internal server error",
 			zap.String("path", c.Request().URL.Path),
