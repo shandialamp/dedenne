@@ -12,9 +12,39 @@ import (
 	"go.uber.org/zap"
 )
 
-func Start(registerRoutes func(e *echo.Echo, cfg *config.Config)) {
+// StartOption 是 Start 函数的选项函数类型
+type StartOption func(*startOptions)
+
+// startOptions 保存 Start 函数的选项
+type startOptions struct {
+	configPath string
+	registerRoutes func(e *echo.Echo, cfg *config.Config)
+}
+
+// WithConfigPath 设置配置文件路径
+func WithConfigPath(path string) StartOption {
+	return func(opts *startOptions) {
+		opts.configPath = path
+	}
+}
+
+// WithRegisterRoutes 设置路由注册函数
+func WithRegisterRoutes(fn func(e *echo.Echo, cfg *config.Config)) StartOption {
+	return func(opts *startOptions) {
+		opts.registerRoutes = fn
+	}
+}
+
+// Start 启动应用服务器
+func Start(opts ...StartOption) {
+	// 初始化选项
+	options := &startOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	// 读取配置
-	cfg, err := config.ReadConfig("")
+	cfg, err := config.ReadConfig(options.configPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to read config: %v\n", err)
 		os.Exit(1)
@@ -41,7 +71,9 @@ func Start(registerRoutes func(e *echo.Echo, cfg *config.Config)) {
 	e.Use(echomiddleware.Recover())
 
 	// 注册路由
-	registerRoutes(e, cfg)
+	if options.registerRoutes != nil {
+		options.registerRoutes(e, cfg)
+	}
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	logger.Info("Server listening", zap.String("addr", addr))
