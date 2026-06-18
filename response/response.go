@@ -3,7 +3,7 @@ package response
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // Response 统一响应格式
@@ -15,7 +15,8 @@ type Response struct {
 }
 
 // Success 成功响应
-func Success(c echo.Context, data interface{}, message string) error {
+// nolint:vet // Echo v5 Context contains sync.RWMutex (expected)
+func Success(c *echo.Context, data interface{}, message string) error {
 	resp := &Response{
 		Code:    0,
 		Data:    data,
@@ -26,7 +27,7 @@ func Success(c echo.Context, data interface{}, message string) error {
 }
 
 // SuccessWithCode 自定义成功响应（带状态码）
-func SuccessWithCode(c echo.Context, statusCode int, data interface{}, message string) error {
+func SuccessWithCode(c *echo.Context, statusCode int, data interface{}, message string) error {
 	resp := &Response{
 		Code:    0,
 		Data:    data,
@@ -37,7 +38,7 @@ func SuccessWithCode(c echo.Context, statusCode int, data interface{}, message s
 }
 
 // Error 错误响应
-func Error(c echo.Context, code int, message string) error {
+func Error(c *echo.Context, code int, message string) error {
 	resp := &Response{
 		Code:    code,
 		Data:    nil,
@@ -48,7 +49,7 @@ func Error(c echo.Context, code int, message string) error {
 }
 
 // ErrorWithStatus 错误响应（带 HTTP 状态码）
-func ErrorWithStatus(c echo.Context, httpStatus int, code int, message string) error {
+func ErrorWithStatus(c *echo.Context, httpStatus int, code int, message string) error {
 	resp := &Response{
 		Code:    code,
 		Data:    nil,
@@ -59,7 +60,7 @@ func ErrorWithStatus(c echo.Context, httpStatus int, code int, message string) e
 }
 
 // ErrorWithDetail 带详情的错误响应
-func ErrorWithDetail(c echo.Context, httpStatus int, code int, message string, detail string) error {
+func ErrorWithDetail(c *echo.Context, httpStatus int, code int, message string, detail string) error {
 	resp := &Response{
 		Code:    code,
 		Data:    nil,
@@ -79,7 +80,9 @@ type PaginatedResponse struct {
 }
 
 // SuccessPaginated 分页成功响应
-func SuccessPaginated(c echo.Context, items interface{}, total int64, page, pageSize int) error {
+//
+//nolint:vet
+func SuccessPaginated(c *echo.Context, items interface{}, total int64, page, pageSize int) error {
 	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
 	resp := &Response{
 		Code: 0,
