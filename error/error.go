@@ -110,7 +110,7 @@ func HTTPErrorHandler(logger *zap.Logger) echo.HTTPErrorHandler {
 		message := "Internal Server Error"
 		httpCode := http.StatusInternalServerError
 
-		// 优先处理业务错误 - 不记录日志
+		// 优先处理业务错误 - 记录 INFO 级别
 		if be, ok := err.(*BusinessError); ok {
 			code = int(be.Code)
 			message = be.Message
@@ -121,11 +121,17 @@ func HTTPErrorHandler(logger *zap.Logger) echo.HTTPErrorHandler {
 				Message: message,
 				Error:   be.Details,
 			}
+			logger.Info("Business error",
+				zap.Int("code", code),
+				zap.String("message", message),
+				zap.String("path", c.Request().URL.Path),
+				zap.String("method", c.Request().Method),
+			)
 			c.JSON(httpCode, resp)
 			return
 		}
 
-		// 处理 Echo HTTP 错误 - 仅记录 WARN
+		// 处理 Echo HTTP 错误 - 记录 WARN
 		if he, ok := err.(*echo.HTTPError); ok {
 			httpCode = he.Code
 			message = he.Message

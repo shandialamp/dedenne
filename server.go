@@ -91,7 +91,7 @@ func Start(opts ...StartOption) {
 	e.HTTPErrorHandler = error.HTTPErrorHandler(logger)
 
 	// 注册全局中间件
-	e.Use(echomiddleware.RequestLogger())
+	// 移除 RequestLogger 以避免与错误处理器冲突（请求日志在错误处理器中记录）
 	e.Use(echomiddleware.Recover())
 
 	// 执行初始化
