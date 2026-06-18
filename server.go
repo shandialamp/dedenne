@@ -10,7 +10,7 @@ import (
 	echomiddleware "github.com/labstack/echo/v5/middleware"
 	"github.com/shandialamp/dedenne/config"
 	"github.com/shandialamp/dedenne/database"
-	errorpkg "github.com/shandialamp/dedenne/error"
+	"github.com/shandialamp/dedenne/error"
 	"github.com/shandialamp/dedenne/log"
 	"go.uber.org/zap"
 )
@@ -88,7 +88,7 @@ func Start(opts ...StartOption) {
 	e := echo.New()
 
 	// 注册自定义错误处理器
-	e.HTTPErrorHandler = errorpkg.HTTPErrorHandler(logger)
+	e.HTTPErrorHandler = error.HTTPErrorHandler(logger)
 
 	// 注册全局中间件
 	e.Use(echomiddleware.RequestLogger())
