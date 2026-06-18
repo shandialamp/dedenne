@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
 	"github.com/shandialamp/dedenne/config"
 	"github.com/shandialamp/dedenne/response"
@@ -23,7 +23,7 @@ type AuthClaims struct {
 // JWTMiddleware JWT 认证中间件
 func JWTMiddleware(secret string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 			token, err := extractToken(c)
 			if err != nil {
 				resp := response.Response{
@@ -66,7 +66,7 @@ func JWTMiddleware(secret string) echo.MiddlewareFunc {
 }
 
 // extractToken 从请求头中提取 token
-func extractToken(c echo.Context) (string, error) {
+func extractToken(c *echo.Context) (string, error) {
 	auth := c.Request().Header.Get("Authorization")
 	if auth == "" {
 		return "", fmt.Errorf("missing authorization header")
@@ -81,7 +81,7 @@ func extractToken(c echo.Context) (string, error) {
 }
 
 // GetAuthUser 从 context 中获取认证用户信息
-func GetAuthUser(c echo.Context) *AuthClaims {
+func GetAuthUser(c *echo.Context) *AuthClaims {
 	user, ok := c.Get("auth_user").(*AuthClaims)
 	if !ok {
 		return nil
@@ -90,7 +90,7 @@ func GetAuthUser(c echo.Context) *AuthClaims {
 }
 
 // GetUserID 从 context 中获取用户 ID
-func GetUserID(c echo.Context) int64 {
+func GetUserID(c *echo.Context) int64 {
 	userID, ok := c.Get("user_id").(int64)
 	if !ok {
 		return 0
@@ -99,7 +99,7 @@ func GetUserID(c echo.Context) int64 {
 }
 
 // GetUsername 从 context 中获取用户名
-func GetUsername(c echo.Context) string {
+func GetUsername(c *echo.Context) string {
 	username, ok := c.Get("username").(string)
 	if !ok {
 		return ""
