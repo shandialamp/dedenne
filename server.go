@@ -1,6 +1,7 @@
 package dedenne
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"github.com/labstack/echo/v5"
 	echomiddleware "github.com/labstack/echo/v5/middleware"
 	"github.com/shandialamp/dedenne/config"
+	"github.com/shandialamp/dedenne/database"
 	"github.com/shandialamp/dedenne/log"
 	"go.uber.org/zap"
 )
@@ -18,7 +20,7 @@ type StartOption func(*startOptions)
 // startOptions 保存 Start 函数的选项
 type startOptions struct {
 	configPath string
-	registerRoutes func(e *echo.Echo, cfg *config.Config)
+	setup      func(e *echo.Echo, cfg *config.Config, db *sql.DB)
 }
 
 // WithConfigPath 设置配置文件路径
@@ -28,10 +30,10 @@ func WithConfigPath(path string) StartOption {
 	}
 }
 
-// WithRegisterRoutes 设置路由注册函数
-func WithRegisterRoutes(fn func(e *echo.Echo, cfg *config.Config)) StartOption {
+// WithSetup 设置初始化函数（注册路由、中间件、服务等）
+func WithSetup(fn func(e *echo.Echo, cfg *config.Config, db *sql.DB)) StartOption {
 	return func(opts *startOptions) {
-		opts.registerRoutes = fn
+		opts.setup = fn
 	}
 }
 
@@ -63,6 +65,18 @@ func Start(opts ...StartOption) {
 		zap.Int("port", cfg.Server.Port),
 	)
 
+	// 初始化数据库
+	db, err := database.NewDB(&cfg.Database, logger)
+	if err != nil {
+		logger.Error("Failed to initialize database", zap.Error(err))
+		os.Exit(1)
+	}
+	defer func() {
+		if err := database.Close(db, logger); err != nil {
+			logger.Error("Failed to close database", zap.Error(err))
+		}
+	}()
+
 	// 创建 Echo 应用
 	e := echo.New()
 
@@ -70,9 +84,9 @@ func Start(opts ...StartOption) {
 	e.Use(echomiddleware.RequestLogger())
 	e.Use(echomiddleware.Recover())
 
-	// 注册路由
-	if options.registerRoutes != nil {
-		options.registerRoutes(e, cfg)
+	// 执行初始化
+	if options.setup != nil {
+		options.setup(e, cfg, db)
 	}
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)

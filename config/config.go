@@ -15,6 +15,9 @@ type Config struct {
 
 	// Log
 	Log LogConfig `mapstructure:"log"`
+
+	// Database
+	Database DatabaseConfig `mapstructure:"database"`
 }
 
 type ServerConfig struct {
@@ -31,6 +34,14 @@ type LogConfig struct {
 	Level      string `mapstructure:"level"`      // debug, info, warn, error
 	Format     string `mapstructure:"format"`     // json, console
 	OutputPath string `mapstructure:"outputPath"` // stdout, stderr, file path
+}
+
+type DatabaseConfig struct {
+	Type         string `mapstructure:"type"`         // sqlite, mysql
+	DSN          string `mapstructure:"dsn"`          // Data Source Name
+	MaxOpenConn  int    `mapstructure:"maxOpenConn"`  // 最大打开连接数
+	MaxIdleConn  int    `mapstructure:"maxIdleConn"`  // 最大空闲连接数
+	MaxLifetime  int    `mapstructure:"maxLifetime"`  // 连接最大生命周期（秒）
 }
 
 var globalConfig *Config
@@ -59,6 +70,11 @@ func ReadConfig(configPath string) (*Config, error) {
 	v.BindEnv("log.level", "LOG_LEVEL")
 	v.BindEnv("log.format", "LOG_FORMAT")
 	v.BindEnv("log.outputPath", "LOG_OUTPUT_PATH")
+	v.BindEnv("database.type", "DATABASE_TYPE")
+	v.BindEnv("database.dsn", "DATABASE_DSN")
+	v.BindEnv("database.maxOpenConn", "DATABASE_MAX_OPEN_CONN")
+	v.BindEnv("database.maxIdleConn", "DATABASE_MAX_IDLE_CONN")
+	v.BindEnv("database.maxLifetime", "DATABASE_MAX_LIFETIME")
 
 	cfg := &Config{}
 	if err := v.Unmarshal(cfg); err != nil {
@@ -88,6 +104,13 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("log.level", "info")
 	v.SetDefault("log.format", "json")
 	v.SetDefault("log.outputPath", "stdout")
+
+	// Database defaults
+	v.SetDefault("database.type", "sqlite")
+	v.SetDefault("database.dsn", "app.db")
+	v.SetDefault("database.maxOpenConn", 25)
+	v.SetDefault("database.maxIdleConn", 5)
+	v.SetDefault("database.maxLifetime", 5*60) // 5 minutes
 }
 
 // Validate 验证配置的有效性
@@ -118,6 +141,27 @@ func (c *Config) Validate() error {
 
 	if c.Log.OutputPath == "" {
 		c.Log.OutputPath = "stdout"
+	}
+
+	// Database validation
+	if c.Database.Type == "" {
+		c.Database.Type = "sqlite"
+	}
+
+	if c.Database.DSN == "" {
+		c.Database.DSN = "app.db"
+	}
+
+	if c.Database.MaxOpenConn <= 0 {
+		c.Database.MaxOpenConn = 25
+	}
+
+	if c.Database.MaxIdleConn <= 0 {
+		c.Database.MaxIdleConn = 5
+	}
+
+	if c.Database.MaxLifetime <= 0 {
+		c.Database.MaxLifetime = 5 * 60
 	}
 
 	return nil
