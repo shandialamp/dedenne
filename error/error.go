@@ -2,6 +2,11 @@ package errors
 
 import (
 	"fmt"
+	"net/http"
+
+	"github.com/labstack/echo/v5"
+	"github.com/shandialamp/dedenne/response"
+	"go.uber.org/zap"
 )
 
 // ErrorCode 业务错误码
@@ -96,4 +101,63 @@ func TokenExpiredError() *BusinessError {
 // InternalError 内部服务错误
 func InternalError(message string) error {
 	return fmt.Errorf("internal error: %s", message)
+}
+
+// HTTPErrorHandler 统一处理 Echo 的错误响应
+func HTTPErrorHandler(logger *zap.Logger) echo.HTTPErrorHandler {
+	return func(c *echo.Context, err error) {
+		code := http.StatusInternalServerError
+		message := "Internal Server Error"
+		httpCode := http.StatusInternalServerError
+
+		// 优先处理业务错误 - 不记录日志
+		if be, ok := err.(*BusinessError); ok {
+			code = int(be.Code)
+			message = be.Message
+			httpCode = http.StatusOK
+			resp := &response.Response{
+				Code:    code,
+				Data:    nil,
+				Message: message,
+				Error:   be.Details,
+			}
+			c.JSON(httpCode, resp)
+			return
+		}
+
+		// 处理 Echo HTTP 错误 - 仅记录 WARN
+		if he, ok := err.(*echo.HTTPError); ok {
+			httpCode = he.Code
+			message = he.Message
+			logger.Warn("HTTP error",
+				zap.Int("code", httpCode),
+				zap.String("message", message),
+				zap.String("path", c.Request().URL.Path),
+				zap.String("method", c.Request().Method),
+			)
+			resp := &response.Response{
+				Code:    httpCode,
+				Data:    nil,
+				Message: message,
+				Error:   "",
+			}
+			c.JSON(httpCode, resp)
+			return
+		}
+
+		// 处理其他系统错误 - 记录 ERROR + 堆栈
+		logger.Error("Internal server error",
+			zap.String("path", c.Request().URL.Path),
+			zap.String("method", c.Request().Method),
+			zap.Error(err),
+			zap.Stack("stacktrace"),
+		)
+		resp := &response.Response{
+			Code:    500,
+			Data:    nil,
+			Message: message,
+			Error:   "",
+		}
+		c.JSON(httpCode, resp)
+	}
 }
