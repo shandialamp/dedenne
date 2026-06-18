@@ -68,12 +68,18 @@ func Start(opts ...StartOption) {
 	// 初始化数据库
 	db, err := database.NewDB(&cfg.Database, logger)
 	if err != nil {
-		logger.Error("Failed to initialize database", zap.Error(err))
+		logger.Error("Failed to initialize database",
+			zap.Error(err),
+			zap.Stack("stacktrace"),
+		)
 		os.Exit(1)
 	}
 	defer func() {
 		if err := database.Close(db, logger); err != nil {
-			logger.Error("Failed to close database", zap.Error(err))
+			logger.Error("Failed to close database",
+				zap.Error(err),
+				zap.Stack("stacktrace"),
+			)
 		}
 	}()
 
@@ -92,6 +98,9 @@ func Start(opts ...StartOption) {
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	logger.Info("Server listening", zap.String("addr", addr))
 	if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
-		logger.Error("Server error", zap.Error(err))
+		logger.Error("Server error",
+			zap.Error(err),
+			zap.Stack("stacktrace"),
+		)
 	}
 }

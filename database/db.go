@@ -32,6 +32,10 @@ func NewDB(cfg *config.DatabaseConfig, logger *zap.Logger) (*sql.DB, error) {
 
 	db, err := sql.Open(driverName, dsn)
 	if err != nil {
+		logger.Error("Failed to open database",
+			zap.Error(err),
+			zap.Stack("stacktrace"),
+		)
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
@@ -43,6 +47,10 @@ func NewDB(cfg *config.DatabaseConfig, logger *zap.Logger) (*sql.DB, error) {
 	// 验证连接
 	if err := db.Ping(); err != nil {
 		db.Close()
+		logger.Error("Failed to ping database",
+			zap.Error(err),
+			zap.Stack("stacktrace"),
+		)
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
@@ -62,7 +70,10 @@ func Close(db *sql.DB, logger *zap.Logger) error {
 		return nil
 	}
 	if err := db.Close(); err != nil {
-		logger.Error("Failed to close database", zap.Error(err))
+		logger.Error("Failed to close database",
+			zap.Error(err),
+			zap.Stack("stacktrace"),
+		)
 		return err
 	}
 	logger.Info("Database connection closed")
