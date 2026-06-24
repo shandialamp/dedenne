@@ -3,6 +3,7 @@ package error
 import (
 	"fmt"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/labstack/echo/v5"
 	"github.com/shandialamp/dedenne/response"
@@ -171,12 +172,15 @@ func HTTPErrorHandler(logger *zap.Logger) echo.HTTPErrorHandler {
 			return
 		}
 
-		// 处理其他系统错误 - 记录 ERROR + 堆栈
+		// 处理其他系统错误 - 记录 ERROR + goroutine 堆栈
+		// 注意: zap.Stack("stacktrace") 只记录 HTTPErrorHandler 自身的调用栈，
+		// 无法追溯到原始 handler 中发生错误的位置。
+		// 因此额外记录 goroutine 堆栈，帮助定位原始错误来源。
 		logger.Error("Internal server error",
 			zap.String("path", c.Request().URL.Path),
 			zap.String("method", c.Request().Method),
 			zap.Error(err),
-			zap.Stack("stacktrace"),
+			zap.String("goroutine_stack", string(debug.Stack())),
 		)
 		resp := &response.Response{
 			Code:    500,
