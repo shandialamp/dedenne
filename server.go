@@ -8,9 +8,9 @@ import (
 
 	"github.com/labstack/echo/v5"
 	echomiddleware "github.com/labstack/echo/v5/middleware"
+	"github.com/shandialamp/dedenne/bizerr"
 	"github.com/shandialamp/dedenne/config"
 	"github.com/shandialamp/dedenne/database"
-	"github.com/shandialamp/dedenne/error"
 	"github.com/shandialamp/dedenne/log"
 	"go.uber.org/zap"
 )
@@ -88,7 +88,7 @@ func Start(opts ...StartOption) {
 	e := echo.New()
 
 	// 注册自定义错误处理器
-	e.HTTPErrorHandler = error.HTTPErrorHandler(logger)
+	e.HTTPErrorHandler = bizerr.HTTPErrorHandler(logger)
 
 	// 注册全局中间件
 	// 移除 RequestLogger 以避免与错误处理器冲突（请求日志在错误处理器中记录）
